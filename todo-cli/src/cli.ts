@@ -74,7 +74,7 @@ async function handleCommands({
     }
 }
 
-function main() {
+async function main() {
     try {
         const { values, positionals } = handleArgs()
 
@@ -87,7 +87,7 @@ function main() {
         attachStoreLogger(store, logger)
         store.load()
 
-        return handleCommands({
+        await handleCommands({
             cmd,
             args,
             store,

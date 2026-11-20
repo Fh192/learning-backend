@@ -14,7 +14,7 @@ export class Logger {
     }
 
     private setLogLevel() {
-        const levelEnv = process.env.TODO_DEBUG
+        const levelEnv = process.env.TODO_LOG_LEVEL
         const isEnvValid = (level: string | undefined): level is LogLevel => {
             return !!(level && level in LOG_LEVEL)
         }

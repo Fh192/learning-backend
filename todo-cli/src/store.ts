@@ -32,7 +32,6 @@ export class TodoStore extends EventEmitter<TodoStoreEvents> {
             this.todos = readJson<Todo[]>(this.filePath, [])
             return this.todos
         } catch (err) {
-            this.emit('error', 'load', err)
             throw new StorageError('Ошибка при чтении файла', { cause: err })
         }
     }
@@ -90,11 +89,11 @@ export class TodoStore extends EventEmitter<TodoStoreEvents> {
         try {
             if (!this.dirty) return
 
-            await writeJsonAtomic(this.filePath, JSON.stringify(this.todos))
             this.dirty = false
+            await writeJsonAtomic(this.filePath, JSON.stringify(this.todos))
             this.emit('saved', this.filePath)
         } catch (err) {
-            this.emit('error', 'save', err)
+            this.dirty = true
             throw new StorageError('Не удалось сохранить изменения', { cause: err })
         }
     }

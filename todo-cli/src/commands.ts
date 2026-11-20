@@ -23,7 +23,7 @@ export async function add(args: string[], store: TodoStore) {
 
 export async function done(args: string[], store: TodoStore) {
     const id = validateTodoId(args.at(0))
-    const todo = store.complete(+id)
+    const todo = store.complete(id)
     await store.save()
 
     console.log(`Выполнено: #${todo.id} ${todo.text}`)
@@ -31,44 +31,27 @@ export async function done(args: string[], store: TodoStore) {
 
 export async function rm(args: string[], store: TodoStore) {
     const id = validateTodoId(args.at(0))
-    const todo = store.remove(+id)
+    const todo = store.remove(id)
     await store.save()
 
     console.log(`Удалено: #${todo.id} ${todo.text}`)
 }
 
 export function batch(store: TodoStore) {
-    let savePromise: null | Promise<void> = null
+    let queue: Promise<void> = Promise.resolve()
     const rl = readline.createInterface({ input: stdin, output: stdout })
+
+    function handleSave(): Promise<void> {
+        const run = queue.then(() => store.save())
+        queue = run.catch(() => { })
+        return run
+    }
+
     const interval = setInterval(() => {
-        handleSave()
+        handleSave().catch(err => store.emit('error', 'autosave', err))
     }, 5000)
 
     let sigCallsCount = 0
-
-    const handleSave = async () => {
-        if (savePromise) {
-            await savePromise
-        }
-
-        savePromise = (async () => {
-            const timeout = setTimeout(() => {
-                throw new AppError('Не удалось сохранить за 3 с')
-            }, 3000)
-
-            const slowSaveMs = +(process.env.TODO_SLOW_SAVE_MS || '0')
-            if (!Number.isNaN(slowSaveMs) && slowSaveMs > 0) {
-                await new Promise(r => setTimeout(() => r(null), slowSaveMs))
-            }
-
-            await store.save()
-            clearTimeout(timeout)
-            savePromise = null
-        })()
-
-        return savePromise
-    }
-
     const sigHandler = async (signal: 'SIGINT' | 'SIGTERM') => {
         const exitCode = signal === 'SIGTERM' ? 143 : 130
 
@@ -77,7 +60,23 @@ export function batch(store: TodoStore) {
         }
 
         console.log('Сохраняю...')
-        await handleSave()
+
+        const timeout = setTimeout(() => {
+            console.error('Не удалось сохранить за 3 с')
+            process.exit(1)
+        }, 3000)
+
+        try {
+            const slowSaveMs = +(process.env.TODO_SLOW_SAVE_MS || '0')
+            if (!Number.isNaN(slowSaveMs) && slowSaveMs > 0) {
+                await new Promise(r => setTimeout(() => r(null), slowSaveMs))
+            }
+
+            await handleSave()
+        } finally {
+            clearTimeout(timeout)
+        }
+
         rl.close()
         process.exitCode = exitCode
     }

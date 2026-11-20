@@ -2,9 +2,7 @@ import { readFileSync } from 'node:fs'
 import { extname, resolve } from 'node:path'
 import { UsageError } from './errors.ts'
 import { isError } from './helpers.ts'
-import { writeFile } from 'node:fs/promises'
-import { rename } from 'node:fs/promises'
-import { rm } from 'node:fs/promises'
+import { writeFile, rename, rm } from 'node:fs/promises'
 
 function getTmpFilePath(path: string) {
     return resolve(`${path}.tmp-${process.pid}`)
@@ -17,7 +15,7 @@ export async function writeJsonAtomic(path: string, data: string) {
         await writeFile(tmpFilePath, data)
         await rename(tmpFilePath, path)
     } catch (err) {
-        rm(tmpFilePath)
+        await rm(tmpFilePath, { force: true }).catch(() => { })
         throw err
     }
 }
