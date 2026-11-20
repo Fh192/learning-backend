@@ -1,12 +1,25 @@
-import { readFileSync, writeFileSync, renameSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { extname, resolve } from 'node:path'
 import { UsageError } from './errors.ts'
 import { isError } from './helpers.ts'
+import { writeFile } from 'node:fs/promises'
+import { rename } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 
-export function writeJsonAtomic(path: string, data: string) {
-    const tmpFilePath = resolve(process.cwd(), `./todo.json.tmp-${process.pid}`)
-    writeFileSync(tmpFilePath, data)
-    renameSync(tmpFilePath, path)
+function getTmpFilePath(path: string) {
+    return resolve(`${path}.tmp-${process.pid}`)
+}
+
+export async function writeJsonAtomic(path: string, data: string) {
+    const tmpFilePath = getTmpFilePath(path)
+
+    try {
+        await writeFile(tmpFilePath, data)
+        await rename(tmpFilePath, path)
+    } catch (err) {
+        rm(tmpFilePath)
+        throw err
+    }
 }
 
 export function readJson<T>(path: string, defaultValue: T): T {
@@ -24,7 +37,7 @@ export function readJson<T>(path: string, defaultValue: T): T {
 export function getTodoFilePath() {
     const filePath = resolve(process.cwd(), process.env.TODO_FILE || './todo.json')
 
-    if (filePath.split('.').at(-1) !== 'json') {
+    if (extname(filePath) !== '.json') {
         throw new UsageError('Файл должен быть в формате ".json"')
     }
 

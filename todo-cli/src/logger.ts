@@ -1,9 +1,40 @@
+const LOG_LEVEL = Object.freeze({
+    debug: 0,
+    error: 1
+})
+
+type LogLevel = keyof typeof LOG_LEVEL
+type LogLevelValue = typeof LOG_LEVEL[LogLevel]
+
 export class Logger {
-    log(message: string) {
-        console.log(message)
+    level: LogLevelValue = LOG_LEVEL['error']
+
+    constructor() {
+        this.setLogLevel()
     }
 
-    error(message: string, cause: unknown) {
-        console.error(new Error(message, { cause }))
+    private setLogLevel() {
+        const levelEnv = process.env.TODO_DEBUG
+        const isEnvValid = (level: string | undefined): level is LogLevel => {
+            return !!(level && level in LOG_LEVEL)
+        }
+
+        if (isEnvValid(levelEnv)) {
+            this.level = LOG_LEVEL[levelEnv]
+        }
+    }
+
+    get currentTime() {
+        return Temporal.Now.plainDateTimeISO().toString({ smallestUnit: 'second' })
+    }
+
+    debug(message: string) {
+        if (this.level > LOG_LEVEL['debug']) return
+        console.error(`[${this.currentTime}] DEBUG`, message)
+    }
+
+    error(message: string, cause?: unknown) {
+        if (this.level > LOG_LEVEL['error']) return
+        console.error(`[${this.currentTime}] ERROR`, new Error(message, { cause }))
     }
 }

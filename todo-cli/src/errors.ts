@@ -1,10 +1,10 @@
 export class AppError extends Error {
-    constructor(message: string, exitCode: number, options?: ErrorOptions,) {
+    exitCode: number
+
+    constructor(message: string, exitCode: number = 1, options?: ErrorOptions) {
         super(message, options)
         this.name = 'AppError'
-
-        console.error(message)
-        process.exitCode = exitCode
+        this.exitCode = exitCode
     }
 }
 
