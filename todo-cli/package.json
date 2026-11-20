@@ -1,0 +1,7 @@
+{
+  "name": "todo-cli",
+  "type": "module",
+  "bin": {
+    "todo": "./todo-cli/index.cjs"
+  }
+}
