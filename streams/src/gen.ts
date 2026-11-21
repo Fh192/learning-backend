@@ -14,19 +14,23 @@ export async function seedOrders(mode: WriteMode, rows: number) {
         stream.write(`${COLUMNS.join(',')}\n`)
 
         const batch: Order[] = []
+
+        async function writeButch() {
+            const ok = stream.write(`${arrToCsvString(batch, COLUMNS)}\n`)
+
+            if (!ok && mode === 'safe') {
+                await once(stream, 'drain')
+            }
+
+            batch.splice(0)
+        }
+
         for (let i = 1; i <= rows; i++) {
             batch.push(createOrder(i))
-
-            if (batch.length >= 1000 || i === rows + 1) {
-                const ok = stream.write(`${arrToCsvString(batch, COLUMNS)}\n`)
-
-                if (!ok && mode === 'safe') {
-                    await once(stream, 'drain')
-                }
-
-                batch.splice(0)
-            }
+            if (batch.length >= 1000) writeButch()
         }
+
+        if (batch.length) writeButch()
 
         stream.end()
 
