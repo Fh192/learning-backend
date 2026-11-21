@@ -24,7 +24,7 @@ export function createOrder(index: number): Order {
         id: index,
         user_id: getRandomInt(1, 100_000),
         game: game.name,
-        price: game.priceCents,
-        created_at: new Date(Date.now() - getRandomInt(0, 1000 * 60 * 60 * 24 * 30 * 365)).toISOString()
+        price: game.priceCents * (1 - getRandomInt(0, 31) / 100),
+        created_at: new Date(Date.now() - getRandomInt(0, 1000 * 60 * 60 * 24 * 365)).toISOString()
     }
 }
