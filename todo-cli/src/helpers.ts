@@ -19,7 +19,7 @@ export function validateTodoId(id: string | undefined): number {
         throw new UsageError('id должно быть целым числом')
     }
 
-    if (idNum < 0) {
+    if (idNum <= 0) {
         throw new UsageError('id должно быть больше 0')
     }
 
