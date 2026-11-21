@@ -1,3 +1,4 @@
+import { aggregate } from "./aggregate.ts"
 import { parseArgs } from "./args.ts"
 import { seedOrders } from "./gen.ts"
 
@@ -9,6 +10,9 @@ async function main() {
         switch (cmd) {
             case 'gen':
                 await seedOrders(values.mode, values.rows)
+                break
+            case 'agg':
+                await aggregate(values.threshold)
                 break
             default:
                 throw new Error('Unsupported command')

@@ -1,7 +1,8 @@
 
 export const DEFAULT_ROWS = 1_000_000
 export const COLUMNS = ['id', 'user_id', 'game', 'price', 'created_at'] as const
-export const FILE_NAME = './orders.csv'
+export const ORDERS_FILE_NAME = './orders.csv'
+export const BIG_ORDERS_FILE_NAME = './big-orders.csv'
 export const GAMES = [
     { name: 'Дота 2', priceCents: 59203 },
     { name: 'Майнкрафт', priceCents: 249999 },
