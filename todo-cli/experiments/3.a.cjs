@@ -1,7 +1,7 @@
 const a1 = 'a1'
 
-const b = require('./3.b.cjs')
-console.log('b: ', b) // b: {}
+const b = require('./3.b.cjs') // a: {}
+console.log('b: ', b) // b: { b1: 'b1', b2: 'b2' }
 
 const a2 = 'a2'
 
