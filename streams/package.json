@@ -1,0 +1,7 @@
+{
+  "name": "streams",
+  "type": "module",
+  "engines": {
+    "node": ">=26"
+  }
+}
