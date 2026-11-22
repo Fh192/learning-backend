@@ -1,7 +1,14 @@
 {
   "name": "streams",
   "type": "module",
+  "private": true,
   "engines": {
     "node": ">=26"
+  },
+  "devDependencies": {
+    "@types/node": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
   }
 }

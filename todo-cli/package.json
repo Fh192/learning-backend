@@ -1,10 +1,17 @@
 {
   "name": "todo-cli",
   "type": "module",
+  "private": true,
   "engines": {
     "node": ">=26"
   },
   "bin": {
     "todo": "./src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
   }
 }
