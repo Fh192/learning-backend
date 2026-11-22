@@ -1,0 +1,15 @@
+{
+  "name": "notes-api",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun kill-server && node --watch ./server.ts",
+    "kill-server": "kill -9 $(lsof -ti :3000)"
+  },
+  "devDependencies": {
+    "@types/node": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}
