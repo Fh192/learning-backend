@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun kill-server && node --watch ./server.ts",
+    "start": "node --watch --env-file=.env ./src/server.ts",
     "kill-server": "kill -9 $(lsof -ti :3000)"
   },
   "devDependencies": {
