@@ -48,7 +48,7 @@ export class Router {
         }
 
         if (!this.routes.get(route.path)?.[method]) {
-            ctx.res.setHeader('allow', Object.keys(this.routes.get(route.path) ?? {}))
+            ctx.res.setHeader('Allow', Object.keys(this.routes.get(route.path) ?? {}).join(', '))
             throw new MethodNotAllowedException(`Method ${method} not allowed on '${route.path}' endpoint`)
         }
 

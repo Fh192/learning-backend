@@ -7,6 +7,6 @@ export const logger: Middleware = async (ctx, next) => {
         await next()
     } finally {
         const ms = performance.now() - start
-        console.error(`${ctx.req.method} ${ctx.url.pathname} - ${ctx.res.statusCode} (${ms.toFixed(2)}ms)`)
+        console.error(`${ctx.req.method} ${ctx.url.pathname} - ${ctx.status} (${ms.toFixed(2)}ms) (${ctx.state.requestId})`)
     }
 }

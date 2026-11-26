@@ -26,5 +26,27 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.requestTimeout = 60 * 1000
-server.listen(3000)
+server.listen(Number(process.env.PORT ?? 3000))
 
+let sigCallsCount = 0
+const handleShutdown = async (signal: 'SIGINT' | 'SIGTERM') => {
+    const exitCode = signal === 'SIGTERM' ? 143 : 130
+
+    if (++sigCallsCount > 1) {
+        process.exit(exitCode)
+    }
+
+    const timeout = setTimeout(() => {
+        server.closeAllConnections()
+        process.exit(exitCode)
+    }, 10_000)
+
+    server.close((err) => {
+        if (err) console.error(err)
+
+        clearTimeout(timeout)
+        process.exitCode = exitCode
+    })
+}
+
+process.on('SIGTERM', handleShutdown).on('SIGINT', handleShutdown)

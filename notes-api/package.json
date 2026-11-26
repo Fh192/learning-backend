@@ -2,6 +2,9 @@
   "name": "notes-api",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "start": "node --watch --env-file=.env ./src/server.ts",
     "kill-server": "kill -9 $(lsof -ti :3000)"

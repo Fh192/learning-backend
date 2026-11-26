@@ -5,10 +5,7 @@ import type { CreateNoteDto, Note, UpdateNoteDto } from "./notes.dto.ts"
 export class NotesService {
     private notes: Note[] = []
     private queue: Promise<void> = Promise.resolve()
-
-    private get lastId(): number {
-        return this.notes.at(-1)?.id ?? 0
-    }
+    private lastId: number = 0
 
     private get filePath() {
         return resolve(process.cwd(), process.env.DATA_FILE ?? './data/notes.json')
@@ -22,9 +19,11 @@ export class NotesService {
 
     init() {
         this.notes = readJson<Note[]>(this.filePath, [])
+        this.lastId = this.notes.at(-1)?.id ?? 0
     }
 
     async getNotes(q?: string | null): Promise<Note[]> {
+        JSON.parse('{')
         if (!q) return this.notes
         return this.notes.filter(({ title }) => title.includes(q))
     }
@@ -35,7 +34,7 @@ export class NotesService {
 
     async createNote(dto: CreateNoteDto): Promise<Note> {
         const note: Note = {
-            id: this.lastId + 1,
+            id: ++this.lastId,
             title: dto.title,
             content: dto.content,
             createdAt: new Date().toISOString(),
