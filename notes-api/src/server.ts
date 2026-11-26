@@ -26,7 +26,7 @@ if (isClusterMode && cluster.isPrimary) {
 
     const interval = setInterval(() => {
         restartCount = 0
-    }, 60_000)
+    }, 60_000).unref()
 
     cluster.on('exit', (worker, code, signal) => {
         console.error(`Worker ${worker.process.pid} died ${signal || code}`)
@@ -41,6 +41,8 @@ if (isClusterMode && cluster.isPrimary) {
             clearInterval(interval)
         }
     })
+
+
 
     let sigCallsCount = 0
     const handleShutdown = async (signal: 'SIGINT' | 'SIGTERM') => {
