@@ -16,7 +16,7 @@ import { registerNotesRoutes } from './routes/notes.ts'
 const isClusterMode = process.env.CLUSTER === 'true'
 
 if (isClusterMode && cluster.isPrimary) {
-    console.error(`Worker ${process.pid} started`);
+    console.error(`Main process ${process.pid} started`);
     const numCPUs = os.availableParallelism()
     let restartCount = 0
 
@@ -30,7 +30,8 @@ if (isClusterMode && cluster.isPrimary) {
 
     cluster.on('exit', (worker, code, signal) => {
         console.error(`Worker ${worker.process.pid} died ${signal || code}`)
-        if (['SIGINT', 'SIGTERM'].includes(signal)) return
+        if (worker.exitedAfterDisconnect) return
+
         console.error(`Restarting worker ${worker.process.pid}...`)
 
         if (restartCount < 5) {
@@ -49,8 +50,13 @@ if (isClusterMode && cluster.isPrimary) {
             process.exit(exitCode)
         }
 
+        const timeout = setTimeout(() => {
+            process.exit(exitCode)
+        }, 10_000)
+
         cluster.disconnect(() => {
             process.exitCode = exitCode
+            clearTimeout(timeout)
         })
     }
 
