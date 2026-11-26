@@ -9,6 +9,12 @@ export class HttpException extends Error {
     }
 }
 
+export class BadRequestException extends HttpException {
+    constructor(message: string = 'Bad request syntax') {
+        super(400, message)
+    }
+}
+
 export class NotFoundException extends HttpException {
     constructor(message: string = 'Resource not found') {
         super(404, message)
@@ -21,9 +27,15 @@ export class MethodNotAllowedException extends HttpException {
     }
 }
 
-export class InternalServerErrorException extends HttpException {
-    constructor(message: string = 'Internal server error') {
-        super(500, message)
+export class PayloadTooLargeException extends HttpException {
+    constructor(message: string = 'Payload too large') {
+        super(413, message)
+    }
+}
+
+export class UnsupportedMediaTypeException extends HttpException {
+    constructor(message: string = 'Unsupported media type') {
+        super(415, message)
     }
 }
 
@@ -33,14 +45,8 @@ export class UnprocessableEntityException extends HttpException {
     }
 }
 
-export class PayloadTooLargeException extends HttpException {
-    constructor(message: string = 'Payload too large') {
-        super(422, message)
-    }
-}
-
-export class BadRequestException extends HttpException {
-    constructor(message: string = 'Bad request syntax') {
-        super(400, message)
+export class InternalServerErrorException extends HttpException {
+    constructor(message: string = 'Internal server error') {
+        super(500, message)
     }
 }

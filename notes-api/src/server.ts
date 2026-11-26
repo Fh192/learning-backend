@@ -1,51 +1,28 @@
 import http from 'node:http'
-import { HttpException } from './errors.ts'
+import { compose } from './middleware/compose.ts'
+import { errorHandler } from './middleware/errorHandler.ts'
+import { cors } from './middleware/cors.ts'
+import { requestId } from './middleware/requestId.ts'
+import { logger } from './middleware/logger.ts'
 import { router } from './router/index.ts'
-import type { Req, Res } from './types.ts'
+import { respond } from './middleware/respond.ts'
+import { body } from './middleware/body.ts'
+import { NotesService } from './services/notes/notes.service.ts'
+import { registerHealthRoutes } from './routes/health.ts'
+import { registerNotesRoutes } from './routes/notes.ts'
 
-function cors(req: Req, res: Res) {
-    if (req.method === 'OPTIONS') {
-        res.statusCode = 204
-        res.end()
-    }
+const app = compose([respond, requestId, logger, errorHandler, cors, body, router.registerMiddleware()])
+const notesService = new NotesService()
+notesService.init()
 
-    res.setHeader('Access-Control-Allow-Origin', process.env['CORS_ORIGINS'] ?? '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-}
-
-function handleServerError(err: unknown, res: Res) {
-    console.error(err)
-
-    if (err instanceof HttpException) {
-        res.statusCode = err.code
-        res.end(JSON.stringify({
-            error: {
-                code: err.code,
-                message: err.message,
-                details: err.details
-            }
-        }))
-    } else {
-        res.statusCode = 500
-        res.end()
-    }
-}
+registerHealthRoutes(router)
+registerNotesRoutes(router, notesService)
 
 const server = http.createServer(async (req, res) => {
-    try {
-        res.on('error', (err) => handleServerError(err, res))
-        req.on('error', (err) => handleServerError(err, res))
-
-        res.statusCode = 200
-        res.setHeader('content-type', 'application/json')
-
-        cors(req, res)
-
-        await router(req, res)
-    } catch (err) {
-        handleServerError(err, res)
-    }
+    app({ req, res }).catch(() => {
+        if (!res.headersSent) res.statusCode = 500
+        res.end()
+    })
 })
 
 server.requestTimeout = 60 * 1000

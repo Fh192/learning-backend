@@ -1,76 +1,89 @@
+import { METHODS } from "node:http";
+import type { Method } from "../constants/methods.ts";
 import { MethodNotAllowedException, NotFoundException } from "../errors.ts";
-import type { Req, Res } from "../types.ts";
-import { getBaseUrl } from "../utils/getBaseUrl.ts"; 
-import { routes, type RouteMethod, type RoutePath } from "./routes.ts";
+import type { Ctx, Middleware } from "../middleware/compose.ts";
+import { getBaseUrl } from "../utils/getBaseUrl.ts";
 
-function validateMethod<T extends RoutePath>(pathname: T, method: string): method is RouteMethod<T> {
-    return Object.hasOwn(routes[pathname], method)
-}
+export class Router {
+    private routes: Map<string, Partial<Record<Method, Middleware>>> = new Map()
 
-function extractRoutePath(url: URL): RoutePath | undefined {
-    for (const path of Object.keys(routes) as RoutePath[]) {
-        const pattern = new URLPattern(path, 'http://localhost');
-        if (pattern.exec(url)) return path
+    private register(method: Method, path: string, fn: Middleware) {
+        const route = this.routes.getOrInsert(path, {})
+
+        if (route[method]) {
+            throw new Error(`${method} handler for ${path} already registered`)
+        }
+
+        this.routes.set(path, { ...route, [method]: fn })
+    }
+
+    private extractRouteFromUrl(url: URL): { path: string, pattern: URLPattern } | null {
+        for (const path of this.routes.keys()) {
+            const pattern = new URLPattern(path, getBaseUrl());
+            const patternResult = pattern.exec(url)
+            if (patternResult) return { path, pattern }
+        }
+
+        return null
+    }
+
+    private validateMethod(method: string): method is Method {
+        for (let i = 0; i < METHODS.length; i++) {
+            if (method === METHODS[i]) return true
+        }
+
+        return false
+    }
+
+    private validateRoute(ctx: Ctx) {
+        const route = this.extractRouteFromUrl(ctx.url)
+        const method = ctx.req.method ?? ""
+
+        if (!route) {
+            throw new NotFoundException(`Endpoint '${ctx.url.pathname}' not found`)
+        }
+
+        if (!this.validateMethod(method)) {
+            throw new MethodNotAllowedException(`Unknown method '${method}'`)
+        }
+
+        if (!this.routes.get(route.path)?.[method]) {
+            ctx.res.setHeader('allow', Object.keys(this.routes.get(route.path) ?? {}))
+            throw new MethodNotAllowedException(`Method ${method} not allowed on '${route.path}' endpoint`)
+        }
+
+        ctx.params = route.pattern.exec(ctx.url)?.pathname.groups ?? {}
+
+        return { route, method }
+    }
+
+    registerMiddleware(): Middleware {
+        return async (ctx, next) => {
+            const { route, method } = this.validateRoute(ctx)
+            const fn = this.routes.get(route.path)![method]!
+            await fn(ctx, next)
+        }
+    }
+
+    get(path: string, fn: Middleware) {
+        this.register('GET', path, fn)
+    }
+
+    post(path: string, fn: Middleware) {
+        this.register('POST', path, fn)
+    }
+
+    put(path: string, fn: Middleware) {
+        this.register('PUT', path, fn)
+    }
+
+    patch(path: string, fn: Middleware) {
+        this.register('PATCH', path, fn)
+    }
+
+    delete(path: string, fn: Middleware) {
+        this.register('DELETE', path, fn)
     }
 }
 
-export async function router(req: Req, res: Res) {
-    const url =  new URL(req.url ?? '', getBaseUrl()) 
-    const routePath = extractRoutePath(url)
-    const method = req.method ?? ''
-
-    if (!routePath) {
-        throw new NotFoundException(`Endpoint '${url.pathname}' not found`)
-    }
-
-    if (!validateMethod(routePath, method)) {
-        res.setHeader('allow', Object.keys(routes[routePath]))
-        throw new MethodNotAllowedException(`Method ${method} not allowed on '${routePath}' endpoint`)
-    }
-
-    return routes[routePath][method](req, res)
-}
-
-// type MiddlewareFn = (req: Req, res: Res, next: () => void) => void | Promise<void>
-
-// class Router {
-//     private routes: Map<string, Partial<Record<Method, MiddlewareFn[]>>> = new Map()
-//     private server: http.Server
-
-//     private register(method: Method, path: string, fn: MiddlewareFn) {
-//         const route = this.routes.getOrInsert(path, {})
-//         const middlewares = route[method] ?? []
-//         this.routes.set(path, { ...route, [method]: [...middlewares, fn] })
-//     }
-
-//     constructor() {
-//         this.server = http.createServer((req, res) => {
-//     const url = new URL(req.url ?? '', 'http://localhost')
-//     const routePath = extractRoutePath(url)
-//     const method = req.method ?? ''
-
-
-//     if(!routePath || !this.routes.has(routePath)) {
-//         throw new NotFoundException(`Endpoint '${url.pathname}' not found`)
-//     }
-            
-//         })
-//     }
-
-//     get(path: string, fn: MiddlewareFn) {
-//         this.register('GET', path, fn)
-//     }
-
-//     post(path: string, fn: MiddlewareFn) {
-//         this.register('POST', path, fn)
-//     }
-
-//     put(path: string, fn: MiddlewareFn) {
-//         this.register('PUT', path, fn)
-//     }
-
-//     delete(path: string, fn: MiddlewareFn) {
-//         this.register('DELETE', path, fn)
-//     }
-// }
-
+export const router = new Router()

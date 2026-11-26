@@ -1,87 +1,88 @@
 import { resolve } from "node:path"
 import { readJson, writeJson } from "../../utils/fs.ts"
 import type { CreateNoteDto, Note, UpdateNoteDto } from "./notes.dto.ts"
-import { NotFoundException, UnprocessableEntityException } from "../../errors.ts"
 
+export class NotesService {
+    private notes: Note[] = []
+    private queue: Promise<void> = Promise.resolve()
 
-
-// export class NotesService {
-// }
-
-
-function getNotesFilePath() {
-    return resolve(process.cwd(), './data/notes.json')
-}
-
-export async function getNotes(q?: string | null): Promise<Note[]> {
-    const notes = await readJson<Note[]>(getNotesFilePath(), [])
-
-    if (!q) return notes
-    return notes.filter(({ title }) => title.includes(q))
-}
-
-export async function findNoteById(id: number): Promise<Note> {
-    if (Number.isNaN(id)) {
-        throw new UnprocessableEntityException('Wrong id format', ['id'])
+    private get lastId(): number {
+        return this.notes.at(-1)?.id ?? 0
     }
 
-    const notes = await readJson<Note[]>(getNotesFilePath(), [])
-    const note = notes.find((n) => n.id === id)
-
-    if (!note) {
-        throw new NotFoundException('Note not found')
+    private get filePath() {
+        return resolve(process.cwd(), process.env.DATA_FILE ?? './data/notes.json')
     }
 
-    return note
-}
-
-export async function createNote(data: CreateNoteDto): Promise<Note> {
-    const notes = await readJson<Note[]>(getNotesFilePath(), [])
-    const note: Note = {
-        id: (notes.at(-1)?.id ?? 0) + 1,
-        title: data.title,
-        content: data.content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+    private async save() {
+        const run = this.queue.then(() => writeJson(this.filePath, JSON.stringify(this.notes)))
+        this.queue = run.catch(() => { })
+        return run
     }
 
-    await writeJson(getNotesFilePath(), JSON.stringify([...notes, note]))
+    init() {
+        this.notes = readJson<Note[]>(this.filePath, [])
+    }
 
-    return note
-}
+    async getNotes(q?: string | null): Promise<Note[]> {
+        if (!q) return this.notes
+        return this.notes.filter(({ title }) => title.includes(q))
+    }
 
-export async function updateNote(id: Note['id'], patch: UpdateNoteDto) {
-    const notes = await readJson<Note[]>(getNotesFilePath(), [])
-    const updated = notes.map((n) => {
-        if (n.id === id) {
-            return Object.assign(n, patch, { updatedAt: new Date().toISOString() })
+    async findNoteById(id: Note['id']): Promise<Note | undefined> {
+        return this.notes.find((n) => n.id === id)
+    }
+
+    async createNote(dto: CreateNoteDto): Promise<Note> {
+        const note: Note = {
+            id: this.lastId + 1,
+            title: dto.title,
+            content: dto.content,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         }
 
-        return n
-    })
+        this.notes.push(note)
 
-    await writeJson(getNotesFilePath(), JSON.stringify(updated))
-}
+        await this.save()
 
-export async function deleteNote(id: Note['id']) {
-    const notes = await readJson<Note[]>(getNotesFilePath(), [])
-    const noteIndex = notes.findIndex((note) => note.id === id)
-
-    if (noteIndex === -1) {
-        throw new NotFoundException('Note not found')
+        return note
     }
 
-    notes.splice(noteIndex, 1)
+    async updateNote(id: Note['id'], dto: UpdateNoteDto) {
+        const note = this.notes.find((n) => n.id === id)
 
-    await writeJson(getNotesFilePath(), JSON.stringify(notes))
-}
+        if (!note) {
+            return null
+        }
 
-function validateCreateNotesBody(body: unknown): body is CreateNoteDto {
-    if (!body || typeof body !== 'object') return false
-    return 'title' in body && 'content' in body
-}
+        Object.assign(
+            note,
+            (['title', 'content'] as const).reduce<UpdateNoteDto>((obj, key) => {
+                if (dto[key] !== undefined) {
+                    obj[key] = dto[key]
+                }
 
-function validateUpdateNotesBody(body: unknown): body is UpdateNoteDto {
-    if (!body || typeof body !== 'object') return false
-    return 'title' in body || 'content' in body
+                return obj
+            }, {}),
+            { updatedAt: new Date().toISOString() }
+        )
+
+        await this.save()
+
+        return note
+    }
+
+    async deleteNote(id: Note['id']) {
+        const noteIndex = this.notes.findIndex((note) => note.id === id)
+
+        if (noteIndex === -1) {
+            return { success: false }
+        }
+
+        this.notes.splice(noteIndex, 1)
+        await this.save()
+
+        return { success: true }
+    }
 }
