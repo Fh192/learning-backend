@@ -19,7 +19,8 @@ registerHealthRoutes(router)
 registerNotesRoutes(router, notesService)
 
 const server = http.createServer(async (req, res) => {
-    app({ req, res }).catch(() => {
+    app({ req, res }).catch((err) => {
+        console.error(err)
         if (!res.headersSent) res.statusCode = 500
         res.end()
     })

@@ -23,7 +23,6 @@ export class NotesService {
     }
 
     async getNotes(q?: string | null): Promise<Note[]> {
-        JSON.parse('{')
         if (!q) return this.notes
         return this.notes.filter(({ title }) => title.includes(q))
     }

@@ -12,6 +12,14 @@ export const parseNoteId = (id: string | undefined): number => {
     return idNum
 }
 
+const validateTitle = (title: unknown): title is string => {
+    return typeof title === 'string' && title.length > 0 && title.length <= 10_000
+}
+
+const validateContent = (content: unknown): content is string => {
+    return typeof content === 'string' && content.length > 0 && content.length <= 10_000
+}
+
 export const parseCreateNote = (body: unknown): CreateNoteDto => {
     if (!isObject(body)) {
         throw new BadRequestException()
@@ -20,11 +28,11 @@ export const parseCreateNote = (body: unknown): CreateNoteDto => {
     const { title, content } = body
     const details: string[] = []
 
-    if (typeof title !== 'string' || !title.length || title.length > 200) {
+    if (!validateTitle(title)) {
         details.push('title')
     }
 
-    if (typeof content !== 'string' || !content.length || content.length > 10_000) {
+    if (!validateContent(content)) {
         details.push('content')
     }
 
@@ -46,11 +54,11 @@ export const parseUpdateNote = (body: unknown): UpdateNoteDto => {
     const { title, content } = body
     const details: string[] = []
 
-    if (title !== undefined && (typeof title !== 'string' || !title.length)) {
+    if (title !== undefined && !validateContent(title)) {
         details.push('title')
     }
 
-    if (content !== undefined && (typeof content !== 'string' || !content.length)) {
+    if (content !== undefined && !validateContent(content)) {
         details.push('content')
     }
 

@@ -13,11 +13,9 @@ export const respond: Middleware = async (ctx, next) => {
 
     if (typeof data === 'string') {
         contentLength = Buffer.byteLength(data)
+        ctx.res.setHeader('content-type', `${isJSON ? 'application/json' : 'text/plain'}; charset=utf-8`)
+        ctx.res.setHeader('content-length', contentLength)
     }
 
-    ctx.res.writeHead(ctx.status, {
-        'content-type': `${isJSON ? 'application/json' : 'text/plain'}; charset=utf-8`,
-        'content-length': contentLength
-    }).end(data)
-
+    ctx.res.writeHead(ctx.status).end(data)
 }
