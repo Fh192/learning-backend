@@ -98,9 +98,9 @@ CREATE TABLE orders (
             'awaiting_payment',
             'in_progress',
             'delivered',
-            'canceled',
-            'completed',
             'dispute',
+            'completed',
+            'canceled',
             'unpaid',
             'error'
         )

@@ -1,6 +1,6 @@
 WITH
     seller_rating AS (
-        SELECT u.id, u.username, ROUND(avg(r.rating), 2) AS rating
+        SELECT u.id, ROUND(avg(r.rating), 2) AS rating
         FROM
             reviews r
             JOIN orders o ON r.order_id = o.id
@@ -12,13 +12,14 @@ WITH
     )
 
 -- active listings with seller reviews
-SELECT l.name, sr.username AS seller, sr.rating
+SELECT l.name, u.username AS seller, sr.rating
 FROM
     listings l
     JOIN games g ON l.game_id = g.id
-    JOIN seller_rating sr ON l.seller_id = sr.id
+    JOIN users u ON l.seller_id = u.id
+    LEFT JOIN seller_rating sr ON l.seller_id = sr.id
 WHERE
-    l.status = 'active';
+    l.status = 'active' && g.slug = 'dota-2';
 
 -- users order history
 SELECT u.username, l.name AS listing_name, o.unit_price * o.quantity AS amount, o.created_at
