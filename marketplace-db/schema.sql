@@ -135,7 +135,12 @@ CREATE TABLE order_messages (
 CREATE TABLE accounts (
     id UUID PRIMARY KEY DEFAULT uuidv7 (),
     type TEXT NOT NULL CHECK (
-        type IN ('user', 'escrow', 'fee')
+        type IN (
+            'user',
+            'escrow',
+            'fee',
+            'external'
+        )
     ),
     owner_id UUID REFERENCES users (id) ON DELETE RESTRICT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -147,6 +152,12 @@ CREATE TABLE accounts (
 
 CREATE TABLE ledger_transactions (
     id UUID PRIMARY KEY DEFAULT uuidv7 (),
+    type TEXT NOT NULL CHECK (
+        type IN 'deposit',
+        'payment',
+        'completion',
+        'refund'
+    ),
     order_id UUID REFERENCES orders (id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -157,4 +168,4 @@ CREATE TABLE ledger_entries (
     transaction_id UUID NOT NULL REFERENCES ledger_transactions (id),
     amount NUMERIC(20, 4) NOT NULL CHECK (amount != 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
+);

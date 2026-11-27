@@ -19,15 +19,23 @@ FROM
     JOIN users u ON l.seller_id = u.id
     LEFT JOIN seller_rating sr ON l.seller_id = sr.id
 WHERE
-    l.status = 'active' && g.slug = 'dota-2';
+    l.status = 'active'
+    AND g.slug = 'dota-2';
 
--- users order history
-SELECT u.username, l.name AS listing_name, o.unit_price * o.quantity AS amount, o.created_at
+-- user order history
+SELECT
+    u.username,
+    l.name AS listing_name,
+    g.name AS game_name,
+    o.unit_price * o.quantity AS amount,
+    o.created_at
 FROM
     orders o
     JOIN users u ON o.buyer_id = u.id
     JOIN listings l ON o.listing_id = l.id
-ORDER BY u.id, o.created_at;
+    JOIN games g ON l.game_id = g.id
+WHERE
+    o.buyer_id = $1;
 
 -- users balance
 SELECT a.owner_id, coalesce(SUM(le.amount), 0) AS balance
@@ -35,5 +43,6 @@ FROM accounts a
     LEFT JOIN ledger_entries le ON a.id = le.account_id
 WHERE
     a.type = 'user'
+    AND a.owner_id = $1
 GROUP BY
     a.owner_id;

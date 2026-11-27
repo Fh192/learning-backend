@@ -174,14 +174,42 @@ JOIN orders o     ON o.id = m.order_id::uuid
 LEFT JOIN users u ON u.username = m.sender;
 
 -- ============================================================
--- Accounts: one system escrow, one system fee, one per active user
+-- Accounts: system escrow, fee and external (money coming from
+-- outside the platform, e.g. a payment provider), one per active user
 -- ============================================================
 INSERT INTO accounts (type, owner_id) VALUES
-    ('escrow', NULL),
-    ('fee',    NULL);
+    ('escrow',   NULL),
+    ('fee',      NULL),
+    ('external', NULL);
 
 INSERT INTO accounts (type, owner_id)
 SELECT 'user', id FROM users WHERE status = 'active';
+
+-- ============================================================
+-- Deposits (top-ups): external -amount -> user +amount, no order.
+-- Each buyer tops up before the first order, so no balance goes negative.
+-- ============================================================
+CREATE TEMP TABLE seed_deposits ON COMMIT DROP AS
+SELECT uuidv7() AS id, u.id AS user_id, d.amount, now() - d.age AS created_at
+FROM (VALUES
+    ('charlie',   100.0000, interval '29 days'),
+    ('diana',      60.0000, interval '22 days'),
+    ('diana',      40.0000, interval '6 days'),
+    ('eve_gamer',  50.0000, interval '15 days')
+) AS d(username, amount, age)
+JOIN users u ON u.username = d.username;
+
+INSERT INTO ledger_transactions (id, order_id, created_at)
+SELECT id, NULL, created_at FROM seed_deposits;
+
+INSERT INTO ledger_entries (account_id, transaction_id, amount, created_at)
+SELECT a.id, d.id, -d.amount, d.created_at
+FROM seed_deposits d
+JOIN accounts a ON a.type = 'external'
+UNION ALL
+SELECT a.id, d.id, d.amount, d.created_at
+FROM seed_deposits d
+JOIN accounts a ON a.type = 'user' AND a.owner_id = d.user_id;
 
 -- ============================================================
 -- Ledger (double-entry: entries in each transaction sum to 0)
